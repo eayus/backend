@@ -3,10 +3,14 @@ module Main where
 import Common.Term
 import IR0.Lower qualified as IR0
 import IR1.Lower qualified as IR1
+import IR1.Pretty qualified as IR1
 import IR1.Term
+import Prettyprinter.Render.Terminal
 
 main :: IO ()
-main = putStrLn $ IR0.lower $ IR1.lower [func]
+main = do
+  putDoc $ IR1.prettyProg [func]
+  putDoc $ IR0.lower $ IR1.lower [func]
 
 func :: Func
 func = Func "add" ["x", "y"] body

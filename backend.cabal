@@ -26,15 +26,20 @@ executable backend
         -- TCO,
 
         Common.Term,
+        Common.Pretty,
 
         IR0.Term,
         IR0.Lower,
 
         IR1.Term,
         IR1.Lower,
+        IR1.Pretty,
     default-extensions:
         LambdaCase,
+        OverloadedStrings,
     build-depends:
         base,
+        prettyprinter,
+        prettyprinter-ansi-terminal,
     hs-source-dirs:   app
     default-language: GHC2021
