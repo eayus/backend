@@ -1,7 +1,7 @@
 module IR0.Lower (lower) where
 
-import Common.Term
 import Common.Pretty
+import Data.Fix
 import IR0.Term
 import Prettyprinter
 import Prettyprinter.Render.Terminal
@@ -27,12 +27,4 @@ genStmt = \case
   Ret x -> keyword "return" <+> genExpr x <> ";"
 
 genExpr :: Expr -> Doc AnsiStyle
-genExpr = \case
-  Var v -> pretty v
-  Prim (Int n) -> literal n
-  Prim (Add x y) -> parens $ genExpr x <+> "+" <+> genExpr y
-  Prim (Sub x y) -> parens $ genExpr x <+> "-" <+> genExpr y
-  Prim (GreaterThan x y) -> parens $ genExpr x <+> ">" <+> genExpr y
-  If x y z -> parens $ keyword "if" <+> genExpr x <+> "{" <+> genExpr y <+> "}" <+> keyword "else" <+> "{" <+> genExpr z <+> "}"
-  Let v x y -> "{ let " <+> pretty v <+> "=" <+> genExpr x <+> "; " <+> genExpr y <+> "}"
-  Call f xs -> pretty f <+> "(" <+> commas (map genExpr xs) <+> ")"
+genExpr = foldFix prettyExprF

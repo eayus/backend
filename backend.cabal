@@ -37,8 +37,11 @@ executable backend
     default-extensions:
         LambdaCase,
         OverloadedStrings,
+        TemplateHaskell,
     build-depends:
         base,
+        data-fix,
+        deriving-compat,
         prettyprinter,
         prettyprinter-ansi-terminal,
     hs-source-dirs:   app

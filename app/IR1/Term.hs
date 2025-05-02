@@ -1,13 +1,9 @@
 module IR1.Term where
 
 import Common.Term
+import Data.Fix
 
-data Expr
-  = Var Ident
-  | Prim (Prim Expr)
-  | If Expr Expr Expr
-  | Let Ident Expr Expr
-  | Call Ident [Expr]
+type Expr = Fix ExprF
 
 data Func = Func
   { name :: Ident,

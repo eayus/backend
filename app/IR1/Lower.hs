@@ -1,6 +1,7 @@
 module IR1.Lower (lower) where
 
 import Common.Term
+import Data.Fix
 import IR0.Term qualified as I
 import IR1.Term qualified as F
 
@@ -24,49 +25,37 @@ tco (F.Func name params body) = I.Func name params stmts
     tmpVar = ("_tmp_" ++)
 
     removeTailCalls :: F.Expr -> [I.Stmt]
-    removeTailCalls = \case
-      e@(F.Var {}) -> [I.Ret $ convExpr e]
-      e@(F.Prim {}) -> [I.Ret $ convExpr e]
-      F.If x y z -> [I.SIf (convExpr x) (removeTailCalls y) (removeTailCalls z)]
-      F.Let v x y -> I.SLet v (convExpr x) : removeTailCalls y
-      e@(F.Call f xs)
+    removeTailCalls e = case unFix e of
+      Var {} -> [I.Ret e]
+      Prim {} -> [I.Ret e]
+      If x y z -> [I.SIf x (removeTailCalls y) (removeTailCalls z)]
+      Let v x y -> I.SLet v x : removeTailCalls y
+      Call f xs
         | f == name -> do
             -- To ensure updating the mutable variables does not change their evaluation,
             -- we first compute values for all the params and give them temporary bindings.
-            let setTmps = zipWith (\v x -> I.SLet (tmpVar v) (convExpr x)) params xs
-            let updMuts = map (\v -> I.Set v (I.Var $ tmpVar v)) params
+            let setTmps = zipWith (I.SLet . tmpVar) params xs
+            let updMuts = map (\v -> I.Set v (Fix $ Var $ tmpVar v)) params
             setTmps ++ updMuts
-        | otherwise -> [I.Ret $ convExpr e]
+        | otherwise -> [I.Ret e]
 
 -- Convert a functional func into an imperative one without TCO.
 convert :: F.Func -> I.Func
-convert (F.Func name params body) = I.Func name params [I.Ret (convExpr body)]
-
--- Convert a functional expr into an imperative one without TCO.
-convExpr :: F.Expr -> I.Expr
-convExpr = \case
-  F.Var v -> I.Var v
-  F.Prim p -> I.Prim (fmap convExpr p)
-  F.If x y z -> I.If (convExpr x) (convExpr y) (convExpr z)
-  F.Let v x y -> I.Let v (convExpr x) (convExpr y)
-  F.Call f xs -> I.Call f (map convExpr xs)
+convert (F.Func name params body) = I.Func name params [I.Ret body]
 
 -- Check whether every recursive call is in tail position.
 eligble :: F.Func -> Bool
 eligble (F.Func name _ body) = onlyTailCalls body
   where
     onlyTailCalls :: F.Expr -> Bool
-    onlyTailCalls = \case
-      F.Var _ -> True
-      F.Prim p -> all noRecursion p
-      F.If x y z -> noRecursion x && onlyTailCalls y && onlyTailCalls z
-      F.Let _ x y -> noRecursion x && onlyTailCalls y
-      F.Call _ xs -> all noRecursion xs
+    onlyTailCalls e = case unFix e of
+      Var _ -> True
+      Prim p -> all noRecursion p
+      If x y z -> noRecursion x && onlyTailCalls y && onlyTailCalls z
+      Let _ x y -> noRecursion x && onlyTailCalls y
+      Call _ xs -> all noRecursion xs
 
     noRecursion :: F.Expr -> Bool
-    noRecursion = \case
-      F.Var _ -> True
-      F.Prim p -> all noRecursion p
-      F.If x y z -> noRecursion x && noRecursion y && noRecursion z
-      F.Let _ x y -> noRecursion x && noRecursion y
-      F.Call f xs -> f /= name && all noRecursion xs
+    noRecursion e = case unFix e of
+      Call f _ | f == name -> False
+      x -> all noRecursion x
