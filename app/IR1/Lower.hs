@@ -1,3 +1,5 @@
+-- Perform tail call optimisation while converting to an imperative
+-- representation.
 module IR1.Lower (lower) where
 
 import Common.Term
@@ -21,8 +23,8 @@ tco (F.Func name params body) = I.Func name params stmts
     stmts :: [I.Stmt]
     stmts = [I.Loop $ removeTailCalls body]
 
-    tmpVar :: Ident -> Ident
-    tmpVar = ("_tmp_" ++)
+    tmpVar :: VarIdent -> VarIdent
+    tmpVar (VarIdent s) = VarIdent ("_tmp_" ++ s)
 
     removeTailCalls :: F.Expr -> [I.Stmt]
     removeTailCalls e = case unFix e of

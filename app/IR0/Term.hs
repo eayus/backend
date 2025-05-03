@@ -6,18 +6,19 @@ import Data.Fix
 type Expr = Fix ExprF
 
 data Stmt
-  = Set Ident Expr
+  = Set VarIdent Expr
   | SIf Expr [Stmt] [Stmt]
-  | SLet Ident Expr
+  | SLet VarIdent Expr
   | Loop [Stmt]
   | Ret Expr
   deriving (Show)
 
 data Func = Func
-  { name :: Ident,
-    params :: [Ident], -- Params are mutable
+  { name :: FuncIdent,
+    params :: [VarIdent], -- Params are mutable
     stmts :: [Stmt]
   }
   deriving (Show)
 
+-- Every function name must be unique. Functions are all mutually recursive.
 type Prog = [Func]

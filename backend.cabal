@@ -34,15 +34,24 @@ executable backend
         IR1.Term,
         IR1.Lower,
         IR1.Pretty,
+
+        IR2.Term,
+        IR2.Lower,
+        IR2.Pretty,
     default-extensions:
         LambdaCase,
+        NoFieldSelectors,
         OverloadedStrings,
+        OverloadedRecordDot,
         TemplateHaskell,
     build-depends:
         base,
         data-fix,
         deriving-compat,
+        hashable,
+        mtl,
         prettyprinter,
         prettyprinter-ansi-terminal,
+        unordered-containers,
     hs-source-dirs:   app
     default-language: GHC2021

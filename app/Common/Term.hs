@@ -1,23 +1,29 @@
 module Common.Term where
 
+import Data.Hashable
+import Data.String
 import Text.Show.Deriving
 
-type Ident = String
+newtype VarIdent = VarIdent String
+  deriving (Eq, Show, IsString, Hashable)
+
+newtype FuncIdent = FuncIdent String
+  deriving (Eq, Show, IsString, Hashable)
 
 data PrimF a
   = Int Integer
   | Add a a
   | Sub a a
   | GreaterThan a a
-  deriving (Foldable, Functor, Show)
+  deriving (Foldable, Functor, Show, Traversable)
 
 data ExprF a
-  = Var Ident
+  = Var VarIdent
   | If a a a
-  | Let Ident a a
-  | Call Ident [a]
+  | Let VarIdent a a
+  | Call FuncIdent [a]
   | Prim (PrimF a)
-  deriving (Foldable, Functor, Show)
+  deriving (Foldable, Functor, Show, Traversable)
 
 $(deriveShow1 ''PrimF)
 $(deriveShow1 ''ExprF)
