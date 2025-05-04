@@ -13,7 +13,7 @@ prettyFunc (Func name params body) =
   keyword "let"
     <+> keyword "rec"
     <+> prettyFuncIdent name
-    <+> parens (commas $ map prettyVarIdent params)
+    <> parens (commas $ map prettyVarIdent params)
     <+> "=\n"
     <> indent 4 (prettyExpr body)
     <> "\n"

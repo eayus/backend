@@ -7,7 +7,7 @@ type Expr = Fix ExprF
 
 data Stmt
   = Set VarIdent Expr
-  | SIf Expr [Stmt] [Stmt]
+  | SMatch Expr [(VarIdent, [Stmt])]
   | SLet VarIdent Expr
   | Loop [Stmt]
   | Ret Expr

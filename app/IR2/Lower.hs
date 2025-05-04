@@ -68,6 +68,10 @@ exprCaptures :: LocalFuncs -> S.Expr -> S.HashSet VarIdent
 exprCaptures locals = \case
   S.Expr (Var v) -> S.singleton v
   S.Expr (Let v x y) -> exprCaptures locals x `S.union` S.delete v (exprCaptures locals y)
+  S.Expr (Match x cs) -> exprCaptures locals x `S.union` S.unions (map (clauseCaptures locals) cs)
   S.Expr (Call f xs) | Just info <- M.lookup f locals -> S.unions (fmap (exprCaptures locals) xs) `S.union` S.fromList info.extraParams -- The interesting case!
   S.Expr e -> S.unions $ toList $ fmap (exprCaptures locals) e
   S.ELetRec func cont -> funcCaptures locals func `S.union` exprCaptures locals cont
+
+clauseCaptures :: LocalFuncs -> (VarIdent, S.Expr) -> S.HashSet VarIdent
+clauseCaptures locals (v, x) = S.delete v $ exprCaptures locals x

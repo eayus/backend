@@ -11,9 +11,15 @@ prettyExprF = \case
   Prim (Add x y) -> parens $ x <+> "+" <+> y
   Prim (Sub x y) -> parens $ x <+> "-" <+> y
   Prim (GreaterThan x y) -> parens $ x <+> ">" <+> y
-  If x y z -> parens $ keyword "if" <+> x <+> "{" <+> y <+> "}" <+> keyword "else" <+> "{" <+> z <+> "}"
   Let v x y -> "{ let " <+> prettyVarIdent v <+> "=" <+> x <+> "; " <+> y <+> "}"
   Call f xs -> prettyFuncIdent f <> "(" <> commas xs <> ")"
+  Match x cs -> parens $ keyword "match" <+> x <+> "{\n" <> indent 4 (prettyClauses cs) <> "\n}"
+
+prettyClauses :: [(VarIdent, Doc AnsiStyle)] -> Doc AnsiStyle
+prettyClauses cs = vsep $ zipWith (curry (\((v, x), i) -> prettyClause v x i)) cs [0 ..]
+
+prettyClause :: VarIdent -> Doc AnsiStyle -> Int -> Doc AnsiStyle
+prettyClause v x i = pretty ("C" ++ show i) <+> prettyVarIdent v <+> "=>" <+> x <> ","
 
 prettyVarIdent :: VarIdent -> Doc AnsiStyle
 prettyVarIdent (VarIdent s) = pretty s
@@ -32,3 +38,6 @@ constant = annotate (color Magenta) . pretty
 
 literal :: (Pretty a) => a -> Doc AnsiStyle
 literal = annotate (color Blue) . pretty
+
+braceBlock :: Doc AnsiStyle -> Doc AnsiStyle
+braceBlock x = "{\n" <> indent 4 x <> "\n}"

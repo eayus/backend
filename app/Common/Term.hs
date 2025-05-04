@@ -19,10 +19,10 @@ data PrimF a
 
 data ExprF a
   = Var VarIdent
-  | If a a a
   | Let VarIdent a a
   | Call FuncIdent [a]
   | Prim (PrimF a)
+  | Match a [(VarIdent, a)]
   deriving (Foldable, Functor, Show, Traversable)
 
 $(deriveShow1 ''PrimF)

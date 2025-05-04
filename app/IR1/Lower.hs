@@ -3,6 +3,7 @@
 module IR1.Lower (lower) where
 
 import Common.Term
+import Data.Bifunctor
 import Data.Fix
 import IR0.Term qualified as I
 import IR1.Term qualified as F
@@ -30,7 +31,7 @@ tco (F.Func name params body) = I.Func name params stmts
     removeTailCalls e = case unFix e of
       Var {} -> [I.Ret e]
       Prim {} -> [I.Ret e]
-      If x y z -> [I.SIf x (removeTailCalls y) (removeTailCalls z)]
+      Match x cs -> [I.SMatch x $ map (second removeTailCalls) cs]
       Let v x y -> I.SLet v x : removeTailCalls y
       Call f xs
         | f == name -> do
@@ -53,7 +54,7 @@ eligble (F.Func name _ body) = onlyTailCalls body
     onlyTailCalls e = case unFix e of
       Var _ -> True
       Prim p -> all noRecursion p
-      If x y z -> noRecursion x && onlyTailCalls y && onlyTailCalls z
+      Match x cs -> noRecursion x && all (onlyTailCalls . snd) cs
       Let _ x y -> noRecursion x && onlyTailCalls y
       Call _ xs -> all noRecursion xs
 
