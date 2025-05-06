@@ -6,10 +6,11 @@ import Data.Fix
 type Expr = Fix ExprF
 
 data Func = Func
-  { name :: FuncIdent,
-    params :: [VarIdent],
+  { name :: Ident IFunc,
+    params :: [(Ident IVar, Type)],
+    returnType :: Type,
     body :: Expr
   }
 
 -- Every function name must be unique. Functions are all mutually recursive.
-type Prog = [Func]
+type Prog = ProgF Func

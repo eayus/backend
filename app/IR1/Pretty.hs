@@ -7,11 +7,12 @@ import Prettyprinter
 import Prettyprinter.Render.Terminal
 
 prettyProg :: Prog -> Doc AnsiStyle
-prettyProg prog = vsep $ annotate (italicized <> colorDull White) "// IR1" : map prettyFunc prog
+prettyProg prog =
+  vsep [annotate (italicized <> colorDull White) "// IR0 (Rust)", prettyProgF (fmap prettyFunc prog)]
 
 prettyFunc :: Func -> Doc AnsiStyle
-prettyFunc (Func name params body) = do
-  let sig = keyword "fn" <+> prettyFuncIdent name <> parens (commas (map (\v -> prettyVarIdent v <> ":" <+> constant "isize") params)) <+> "->" <+> constant "isize"
+prettyFunc (Func name params ret body) = do
+  let sig = keyword "fn" <+> prettyFuncIdent name <> parens (commas (map (\(v, a) -> prettyVarIdent v <> ":" <+> prettyType a) params)) <+> "->" <+> prettyType ret
   let body' = "{\n" <> indent 4 (prettyExpr body) <> "\n}"
   sig <+> body' <> "\n"
 

@@ -19,17 +19,11 @@ executable backend
     import:           warnings
     main-is:          Main.hs
     other-modules:
-        -- Common,
-        -- Func,
-        -- GenRust,
-        -- Imp,
-        -- TCO,
-
         Common.Term,
         Common.Pretty,
 
         IR0.Term,
-        IR0.Lower,
+        IR0.Pretty,
 
         IR1.Term,
         IR1.Lower,
@@ -39,6 +33,8 @@ executable backend
         IR2.Lower,
         IR2.Pretty,
     default-extensions:
+        DataKinds,
+        DuplicateRecordFields,
         LambdaCase,
         NoFieldSelectors,
         OverloadedStrings,
