@@ -12,20 +12,17 @@ import Prettyprinter.Render.Terminal
 
 main :: IO ()
 main = do
-  let ir2 = ProgF [bool] [func]
+  let ir2 = ProgF [] [func]
   let ir1 = IR2.lower ir2
   let ir0 = IR1.lower ir1
   putDoc $ vsep [IR2.prettyProg ir2, IR1.prettyProg ir1, IR0.prettyProg ir0]
 
-bool :: TypeDef
-bool = TypeDef "bool" [ConstructorDef "true" [], ConstructorDef "false" []]
-
 func :: Func
 func =
-  Func "main" [("x", TInt), ("y", TInt)] TInt $
+  Func "adder" [("x", TInt), ("y", TInt)] TInt $
     Expr $
       Match
-        (Expr $ Prim $ GreaterThan (Expr $ Var "x" TInt) (Expr $ Prim $ Int 0))
-        [ ClauseF (Pattern "true" []) $ Expr $ Call "main" [Expr $ Prim $ Sub (Expr $ Var "x" TInt) (Expr $ Prim $ Int 1), Expr $ Prim $ Add (Expr $ Var "y" TInt) (Expr $ Prim $ Int 1)],
-          ClauseF (Pattern "false" []) $ Expr $ Var "y" TInt
+        (Expr $ Prim $ GreaterThan (Expr $ Var "x" TInt) (Expr $ Prim $ Lit $ Int 0))
+        [ ClauseF (PLit $ Bool True) $ Expr $ Call "adder" [Expr $ Prim $ Sub (Expr $ Var "x" TInt) (Expr $ Prim $ Lit $ Int 1), Expr $ Prim $ Add (Expr $ Var "y" TInt) (Expr $ Prim $ Lit $ Int 1)],
+          ClauseF (PLit $ Bool False) $ Expr $ Var "y" TInt
         ]

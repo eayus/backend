@@ -13,8 +13,13 @@ data IdentKind
 newtype Ident (k :: IdentKind) = Ident String
   deriving (Eq, Show, IsString, Hashable)
 
-data PrimF a
+data Lit
   = Int Integer
+  | Bool Bool
+  deriving (Show)
+
+data PrimF a
+  = Lit Lit
   | Add a a
   | Sub a a
   | GreaterThan a a
@@ -39,10 +44,9 @@ data Type
   | TInt
   deriving (Show)
 
-data Pattern = Pattern
-  { constructor :: Ident IConstructor,
-    params :: [(Ident IVar, Type)]
-  }
+data Pattern
+  = PLit Lit
+  | PCon {constructor :: Ident IConstructor, params :: [(Ident IVar, Type)]}
   deriving (Show)
 
 data TypeDef = TypeDef
