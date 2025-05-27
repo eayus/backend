@@ -20,7 +20,7 @@ prettyType = \case
 
 prettyExprF :: ExprF (Doc AnsiStyle) -> Doc AnsiStyle
 prettyExprF = \case
-  Var v -> prettyVarIdent v
+  Var v _ -> prettyVarIdent v
   Prim (Int n) -> literal n
   Prim (Add x y) -> parens $ x <+> "+" <+> y
   Prim (Sub x y) -> parens $ x <+> "-" <+> y
@@ -36,7 +36,7 @@ prettyClause :: ClauseF (Doc AnsiStyle) -> Doc AnsiStyle
 prettyClause (ClauseF pat x) = prettyPattern pat <+> "=>" <+> x <> ","
 
 prettyPattern :: Pattern -> Doc AnsiStyle
-prettyPattern (Pattern con args) = prettyConstructorIdent con <> if not (null args) then parens (commas $ map prettyVarIdent args) else mempty
+prettyPattern (Pattern con args) = prettyConstructorIdent con <> if not (null args) then parens (commas $ map (prettyVarIdent . fst) args) else mempty
 
 prettyConstructorIdent :: Ident IConstructor -> Doc AnsiStyle
 prettyConstructorIdent (Ident s) = annotate (color Yellow) $ pretty s

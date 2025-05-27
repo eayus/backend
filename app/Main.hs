@@ -22,10 +22,10 @@ bool = TypeDef "bool" [ConstructorDef "true" [], ConstructorDef "false" []]
 
 func :: Func
 func =
-  Func "main" ["x", "y"] $
+  Func "main" [("x", TInt), ("y", TInt)] TInt $
     Expr $
       Match
-        (Expr $ Prim $ GreaterThan (Expr $ Var "x") (Expr $ Prim $ Int 0))
-        [ ClauseF (Pattern "true" []) $ Expr $ Call "main" [Expr $ Prim $ Sub (Expr $ Var "x") (Expr $ Prim $ Int 1), Expr $ Prim $ Add (Expr $ Var "y") (Expr $ Prim $ Int 1)],
-          ClauseF (Pattern "false" []) $ Expr $ Var "y"
+        (Expr $ Prim $ GreaterThan (Expr $ Var "x" TInt) (Expr $ Prim $ Int 0))
+        [ ClauseF (Pattern "true" []) $ Expr $ Call "main" [Expr $ Prim $ Sub (Expr $ Var "x" TInt) (Expr $ Prim $ Int 1), Expr $ Prim $ Add (Expr $ Var "y" TInt) (Expr $ Prim $ Int 1)],
+          ClauseF (Pattern "false" []) $ Expr $ Var "y" TInt
         ]

@@ -36,9 +36,8 @@ tco (F.Func name params ret body) = I.Func name params ret stmts
         | f == name -> do
             -- To ensure updating the mutable variables does not change their evaluation,
             -- we first compute values for all the params and give them temporary bindings.
-            let pnames = map fst params
-            let setTmps = zipWith (I.SLet . tmpVar) pnames xs
-            let updMuts = map (\v -> I.Set v (Fix $ Var $ tmpVar v)) pnames
+            let setTmps = zipWith (I.SLet . tmpVar) (map fst params) xs
+            let updMuts = map (\(v, a) -> I.Set v (Fix $ Var (tmpVar v) a)) params
             setTmps ++ updMuts
         | otherwise -> [I.Ret e]
 
@@ -52,7 +51,7 @@ eligble (F.Func name _ _ body) = onlyTailCalls body
   where
     onlyTailCalls :: F.Expr -> Bool
     onlyTailCalls e = case unFix e of
-      Var _ -> True
+      Var {} -> True
       Prim p -> all noRecursion p
       Match x cs -> noRecursion x && all (onlyTailCalls . (.body)) cs
       Let _ x y -> noRecursion x && onlyTailCalls y

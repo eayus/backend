@@ -14,7 +14,7 @@ import IR2.Term qualified as S
 -- Extra parameters are PREPENDED to the existing param list.
 data LocalFuncInfo = LocalFuncInfo
   { newName :: Ident IFunc,
-    extraParams :: [Ident IVar]
+    extraParams :: [(Ident IVar, Type)]
   }
 
 type LocalFuncs = M.HashMap (Ident IFunc) LocalFuncInfo
@@ -40,11 +40,11 @@ llExpr currentFunc localFuncs = \case
   S.Expr (Call f xs) | Just info <- M.lookup f localFuncs -> do
     -- 'f' is local
     xs' <- mapM (llExpr currentFunc localFuncs) xs
-    pure $ Fix $ Call info.newName (map (Fix . Var) info.extraParams ++ xs')
+    pure $ Fix $ Call info.newName (map (Fix . uncurry Var) info.extraParams ++ xs')
   S.Expr x -> Fix <$> mapM (llExpr currentFunc localFuncs) x
   S.ELetRec func@(S.Func name params ret body) cont -> do
     newName <- freshFuncIdent currentFunc name
-    let captured = S.toList $ funcCaptures localFuncs func
+    let captured = M.toList $ funcCaptures localFuncs func
     let localFuncs' = M.insert name (LocalFuncInfo newName captured) localFuncs
     body' <- llExpr currentFunc localFuncs' body
     tell [D.Func newName (captured ++ params) ret body']
@@ -62,20 +62,20 @@ freshFuncIdent (Ident outer) (Ident oldName) = do
 
 -- Calculcate the variables a function captures. If this function calls other functions, and they require extra parameters,
 -- this function must also capture those too!
-funcCaptures :: LocalFuncs -> S.Func -> S.HashSet (Ident IVar)
-funcCaptures locals (S.Func _ params _ body) = exprCaptures locals body `S.difference` S.fromList params
+funcCaptures :: LocalFuncs -> S.Func -> M.HashMap (Ident IVar) Type
+funcCaptures locals (S.Func _ params _ body) = exprCaptures locals body `M.difference` M.fromList params
 
-exprCaptures :: LocalFuncs -> S.Expr -> S.HashSet (Ident IVar)
+exprCaptures :: LocalFuncs -> S.Expr -> M.HashMap (Ident IVar) Type
 exprCaptures locals = \case
-  S.Expr (Var v) -> S.singleton v
-  S.Expr (Let v x y) -> exprCaptures locals x `S.union` S.delete v (exprCaptures locals y)
-  S.Expr (Match x cs) -> exprCaptures locals x `S.union` S.unions (map (clauseCaptures locals) cs)
-  S.Expr (Call f xs) | Just info <- M.lookup f locals -> S.unions (fmap (exprCaptures locals) xs) `S.union` S.fromList info.extraParams -- The interesting case!
-  S.Expr e -> S.unions $ toList $ fmap (exprCaptures locals) e
-  S.ELetRec func cont -> funcCaptures locals func `S.union` exprCaptures locals cont
+  S.Expr (Var v a) -> M.singleton v a
+  S.Expr (Let v x y) -> exprCaptures locals x `M.union` M.delete v (exprCaptures locals y)
+  S.Expr (Match x cs) -> exprCaptures locals x `M.union` M.unions (map (clauseCaptures locals) cs)
+  S.Expr (Call f xs) | Just info <- M.lookup f locals -> M.unions (fmap (exprCaptures locals) xs) `M.union` M.fromList info.extraParams -- The interesting case!
+  S.Expr e -> M.unions $ toList $ fmap (exprCaptures locals) e
+  S.ELetRec func cont -> funcCaptures locals func `M.union` exprCaptures locals cont
 
-clauseCaptures :: LocalFuncs -> ClauseF S.Expr -> S.HashSet (Ident IVar)
-clauseCaptures locals (ClauseF pat x) = exprCaptures locals x `S.difference` patBinds pat
+clauseCaptures :: LocalFuncs -> ClauseF S.Expr -> M.HashMap (Ident IVar) Type
+clauseCaptures locals (ClauseF pat x) = exprCaptures locals x `M.difference` patBinds pat
 
-patBinds :: Pattern -> S.HashSet (Ident IVar)
-patBinds pat = S.fromList pat.args
+patBinds :: Pattern -> M.HashMap (Ident IVar) Type
+patBinds pat = M.fromList pat.params

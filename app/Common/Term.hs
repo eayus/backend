@@ -27,7 +27,7 @@ data ClauseF a = ClauseF
   deriving (Foldable, Functor, Show, Traversable)
 
 data ExprF a
-  = Var (Ident IVar)
+  = Var (Ident IVar) Type
   | Let (Ident IVar) a a
   | Call (Ident IFunc) [a]
   | Prim (PrimF a)
@@ -41,7 +41,7 @@ data Type
 
 data Pattern = Pattern
   { constructor :: Ident IConstructor,
-    args :: [Ident IVar]
+    params :: [(Ident IVar, Type)]
   }
   deriving (Show)
 
