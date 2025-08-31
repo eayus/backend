@@ -65,7 +65,7 @@ data ProgF f = ProgF
   { types :: [TypeDef],
     funcs :: [f]
   }
-  deriving (Foldable, Functor, Traversable)
+  deriving (Foldable, Functor, Show, Traversable)
 
 $(deriveShow1 ''PrimF)
 $(deriveShow1 ''ClauseF)
