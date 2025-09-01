@@ -1,5 +1,6 @@
 module Common.Term where
 
+import Data.Fix
 import Data.Hashable
 import Data.String
 import Text.Show.Deriving
@@ -7,11 +8,16 @@ import Text.Show.Deriving
 data IdentKind
   = IVar
   | IFunc
-  | IType
-  | IConstructor
 
 newtype Ident (k :: IdentKind) = Ident String
   deriving (Eq, Show, IsString, Hashable)
+
+data Type
+  = TInt
+  | TBool
+  | TProd Type Type
+  | TSum [Type]
+  deriving (Show)
 
 data Lit
   = Int Integer
@@ -20,13 +26,26 @@ data Lit
 
 data PrimF a
   = Lit Lit
+  | Pair a a
+  | Inj Integer a
   | Add a a
   | Sub a a
-  | GreaterThan a a
+  | IGT a a -- Integer greater than (>)
   deriving (Foldable, Functor, Show, Traversable)
 
+data PatF r
+  = PLit Lit
+  | PVar (Ident IVar) Type
+  | PPair r r
+  | PInj Int r
+  deriving (Foldable, Functor, Show)
+
+$(deriveShow1 ''PatF)
+
+type Pat = Fix PatF
+
 data ClauseF a = ClauseF
-  { pattern :: Pattern,
+  { pattern :: Pat,
     body :: a
   }
   deriving (Foldable, Functor, Show, Traversable)
@@ -39,35 +58,6 @@ data ExprF a
   | Match a [ClauseF a]
   deriving (Foldable, Functor, Show, Traversable)
 
-data Type
-  = TNamed (Ident IType)
-  | TInt
-  deriving (Show)
-
-data Pattern
-  = PLit Lit
-  | PCon {constructor :: Ident IConstructor, params :: [(Ident IVar, Type)]}
-  deriving (Show)
-
-data TypeDef = TypeDef
-  { name :: Ident IType,
-    constructors :: [ConstructorDef]
-  }
-  deriving (Show)
-
-data ConstructorDef = ConstructorDef
-  { name :: Ident IConstructor,
-    params :: [Type]
-  }
-  deriving (Show)
-
-data ProgF f = ProgF
-  { types :: [TypeDef],
-    funcs :: [f]
-  }
-  deriving (Foldable, Functor, Show, Traversable)
-
 $(deriveShow1 ''PrimF)
 $(deriveShow1 ''ClauseF)
 $(deriveShow1 ''ExprF)
-$(deriveShow1 ''ProgF)

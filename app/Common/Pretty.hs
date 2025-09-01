@@ -1,30 +1,26 @@
 module Common.Pretty where
 
 import Common.Term
+import Data.Fix
 import Prettyprinter
 import Prettyprinter.Render.Terminal
-
-prettyProgF :: ProgF (Doc AnsiStyle) -> Doc AnsiStyle
-prettyProgF (ProgF types funcs) = vsep $ map prettyTypeDef types ++ funcs
-
-prettyTypeDef :: TypeDef -> Doc AnsiStyle
-prettyTypeDef (TypeDef name cons) = keyword "enum" <+> prettyTypeIdent name <+> braceBlock (vsep $ map prettyConstructorDef cons)
-
-prettyConstructorDef :: ConstructorDef -> Doc AnsiStyle
-prettyConstructorDef (ConstructorDef name params) = prettyConstructorIdent name <> commas (map prettyType params) <> ","
 
 prettyType :: Type -> Doc AnsiStyle
 prettyType = \case
   TInt -> constant "isize"
-  TNamed s -> prettyTypeIdent s
+  TBool -> constant "bool"
+  TProd a b -> parens $ prettyType a <> "," <+> prettyType b
+  TSum as -> parens $ concatWith (\l r -> l <+> "|" <+> r) $ map prettyType as
 
 prettyExprF :: ExprF (Doc AnsiStyle) -> Doc AnsiStyle
 prettyExprF = \case
   Var v _ -> prettyVarIdent v
   Prim (Lit l) -> prettyLit l
+  Prim (Pair x y) -> parens $ x <> "," <+> y
+  Prim (Inj n x) -> parens $ constant ("inj" ++ show n) <+> x
   Prim (Add x y) -> parens $ x <+> "+" <+> y
   Prim (Sub x y) -> parens $ x <+> "-" <+> y
-  Prim (GreaterThan x y) -> parens $ x <+> ">" <+> y
+  Prim (IGT x y) -> parens $ x <+> ">" <+> y
   Let v x y -> "{ let " <+> prettyVarIdent v <+> "=" <+> x <+> "; " <+> y <+> "}"
   Call f xs -> prettyFuncIdent f <> "(" <> commas xs <> ")"
   Match x cs -> parens $ keyword "match" <+> x <+> braceBlock (prettyClauses cs)
@@ -35,16 +31,12 @@ prettyClauses = vsep . map prettyClause
 prettyClause :: ClauseF (Doc AnsiStyle) -> Doc AnsiStyle
 prettyClause (ClauseF pat x) = prettyPattern pat <+> "=>" <+> x <> ","
 
-prettyPattern :: Pattern -> Doc AnsiStyle
-prettyPattern = \case
+prettyPattern :: Pat -> Doc AnsiStyle
+prettyPattern = foldFix $ \case
   PLit l -> prettyLit l
-  PCon con params -> prettyConstructorIdent con <> parens (commas $ map (prettyVarIdent . fst) params)
-
-prettyConstructorIdent :: Ident IConstructor -> Doc AnsiStyle
-prettyConstructorIdent (Ident s) = annotate (color Yellow) $ pretty s
-
-prettyTypeIdent :: Ident IType -> Doc AnsiStyle
-prettyTypeIdent (Ident s) = pretty s
+  PVar v _ -> prettyVarIdent v
+  PPair x y -> parens $ x <> "," <+> y
+  PInj n x -> constant ("inj" ++ show n) <+> x
 
 prettyVarIdent :: Ident IVar -> Doc AnsiStyle
 prettyVarIdent (Ident s) = pretty s

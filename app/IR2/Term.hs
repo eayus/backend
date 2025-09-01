@@ -5,7 +5,7 @@ import Common.Term
 -- Mutually recursive top-level functions
 -- Local functions may shadow other functions!
 
-type Prog = ProgF Func
+type Prog = [Func]
 
 data Func = Func
   {name :: Ident IFunc, params :: [(Ident IVar, Type)], returnType :: Type, body :: Expr}

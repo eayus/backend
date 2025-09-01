@@ -7,7 +7,7 @@ import Prettyprinter.Render.Terminal
 
 prettyProg :: Prog -> Doc AnsiStyle
 prettyProg prog =
-  vsep [annotate (italicized <> colorDull White) "// IR2", prettyProgF (fmap prettyFunc prog)]
+  vsep [annotate (italicized <> colorDull White) "// IR2", vsep (fmap prettyFunc prog)]
 
 prettyFunc :: Func -> Doc AnsiStyle
 prettyFunc (Func name params ret body) =

@@ -22,4 +22,4 @@ data Func = Func
   deriving (Show)
 
 -- Every function name must be unique. Functions are all mutually recursive.
-type Prog = ProgF Func
+type Prog = [Func]

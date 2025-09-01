@@ -22,10 +22,9 @@ type LocalFuncs = M.HashMap (Ident IFunc) LocalFuncInfo
 type Lifter = StateT (S.HashSet (Ident IFunc)) (Writer [D.Func])
 
 lower :: S.Prog -> D.Prog
-lower (ProgF types funcs) = do
+lower funcs = do
   let topNames = map (.name) funcs
-  let funcs' = execWriter $ evalStateT (mapM llTop funcs) (S.fromList topNames)
-  ProgF types funcs'
+  execWriter $ evalStateT (mapM llTop funcs) $ S.fromList topNames
 
 llTop :: S.Func -> Lifter ()
 llTop (S.Func name params ret body) = do
@@ -77,5 +76,7 @@ exprCaptures locals = \case
 clauseCaptures :: LocalFuncs -> ClauseF S.Expr -> M.HashMap (Ident IVar) Type
 clauseCaptures locals (ClauseF pat x) = exprCaptures locals x `M.difference` patBinds pat
 
-patBinds :: Pattern -> M.HashMap (Ident IVar) Type
-patBinds pat = M.fromList pat.params
+patBinds :: Pat -> M.HashMap (Ident IVar) Type
+patBinds = foldFix $ \case
+    PVar v a -> M.singleton v a
+    p -> M.unions $ toList p
