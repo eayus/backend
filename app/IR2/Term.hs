@@ -1,15 +1,16 @@
 module IR2.Term where
 
 import Common.Term
+import Data.Fix
+import GHC.Generics
 
 -- Mutually recursive top-level functions
 -- Local functions may shadow other functions!
 
 type Prog = [Func]
 
-data Func = Func
-  {name :: Ident IFunc, params :: [(Ident IVar, Type)], returnType :: Type, body :: Expr}
+type Func = FuncF Expr
 
-data Expr
-  = Expr (ExprF Expr)
-  | ELetRec {func :: Func, cont :: Expr}
+type ExprF = LetRecF :+: CallF :+: CoreF 
+
+type Expr = Fix ExprF

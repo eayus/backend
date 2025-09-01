@@ -5,6 +5,8 @@ import Data.Fix
 import Prettyprinter
 import Prettyprinter.Render.Terminal
 
+-- Make pretty typeclass and use instances?
+
 prettyType :: Type -> Doc AnsiStyle
 prettyType = \case
   TInt -> constant "isize"
@@ -12,17 +14,19 @@ prettyType = \case
   TProd a b -> parens $ prettyType a <> "," <+> prettyType b
   TSum as -> parens $ concatWith (\l r -> l <+> "|" <+> r) $ map prettyType as
 
-prettyExprF :: ExprF (Doc AnsiStyle) -> Doc AnsiStyle
-prettyExprF = \case
+prettyCallF :: CallF (Doc AnsiStyle) -> Doc AnsiStyle
+prettyCallF (CallF f xs) = prettyFuncIdent f <> "(" <> commas xs <> ")"
+
+prettyCoreF :: CoreF (Doc AnsiStyle) -> Doc AnsiStyle
+prettyCoreF = \case
   Var v _ -> prettyVarIdent v
-  Prim (Lit l) -> prettyLit l
-  Prim (Pair x y) -> parens $ x <> "," <+> y
-  Prim (Inj n x) -> parens $ constant ("inj" ++ show n) <+> x
-  Prim (Add x y) -> parens $ x <+> "+" <+> y
-  Prim (Sub x y) -> parens $ x <+> "-" <+> y
-  Prim (IGT x y) -> parens $ x <+> ">" <+> y
+  Lit l -> prettyLit l
+  Pair x y -> parens $ x <> "," <+> y
+  Inj n x -> parens $ constant ("inj" ++ show n) <+> x
+  Add x y -> parens $ x <+> "+" <+> y
+  Sub x y -> parens $ x <+> "-" <+> y
+  IGT x y -> parens $ x <+> ">" <+> y
   Let v x y -> "{ let " <+> prettyVarIdent v <+> "=" <+> x <+> "; " <+> y <+> "}"
-  Call f xs -> prettyFuncIdent f <> "(" <> commas xs <> ")"
   Match x cs -> parens $ keyword "match" <+> x <+> braceBlock (prettyClauses cs)
 
 prettyClauses :: [ClauseF (Doc AnsiStyle)] -> Doc AnsiStyle

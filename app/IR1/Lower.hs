@@ -4,6 +4,7 @@ module IR1.Lower (lower) where
 
 import Common.Term
 import Data.Fix
+import GHC.Generics
 import IR0.Term qualified as I
 import IR1.Term qualified as F
 
@@ -18,7 +19,7 @@ tryTCO func
 
 -- Apply TCO if we know it is eligible.
 tco :: F.Func -> I.Func
-tco (F.Func name params ret body) = I.Func name params ret stmts
+tco (FuncF name params ret body) = I.Func name params ret stmts
   where
     stmts :: [I.Stmt]
     stmts = [I.Loop $ removeTailCalls body]
@@ -28,36 +29,34 @@ tco (F.Func name params ret body) = I.Func name params ret stmts
 
     removeTailCalls :: F.Expr -> [I.Stmt]
     removeTailCalls e = case unFix e of
-      Var {} -> [I.Ret e]
-      Prim {} -> [I.Ret e]
-      Match x cs -> [I.SMatch x $ map (fmap removeTailCalls) cs]
-      Let v x y -> I.SLet v x : removeTailCalls y
-      Call f xs
+      (R1 c) -> case c of
+        Match x cs -> [I.SMatch x $ map (fmap removeTailCalls) cs]
+        Let v x y -> I.SLet v x : removeTailCalls y
+        _ -> [I.Ret e]
+      L1 (CallF f xs)
         | f == name -> do
             -- To ensure updating the mutable variables does not change their evaluation,
             -- we first compute values for all the params and give them temporary bindings.
             let setTmps = zipWith (I.SLet . tmpVar) (map fst params) xs
-            let updMuts = map (\(v, a) -> I.Set v (Fix $ Var (tmpVar v) a)) params
+            let updMuts = map (\(v, a) -> I.Set v (Fix $ R1 $ Var (tmpVar v) a)) params
             setTmps ++ updMuts
         | otherwise -> [I.Ret e]
 
 -- Convert a functional func into an imperative one without TCO.
 convert :: F.Func -> I.Func
-convert (F.Func name params ret body) = I.Func name params ret [I.Ret body]
+convert (FuncF name params ret body) = I.Func name params ret [I.Ret body]
 
 -- Check whether every recursive call is in tail position.
 eligble :: F.Func -> Bool
-eligble (F.Func name _ _ body) = onlyTailCalls body
+eligble (FuncF name _ _ body) = onlyTailCalls body
   where
     onlyTailCalls :: F.Expr -> Bool
-    onlyTailCalls e = case unFix e of
-      Var {} -> True
-      Prim p -> all noRecursion p
-      Match x cs -> noRecursion x && all (onlyTailCalls . (.body)) cs
-      Let _ x y -> noRecursion x && onlyTailCalls y
-      Call _ xs -> all noRecursion xs
+    onlyTailCalls (Fix e) = case e of
+      R1 (Match x cs) -> noRecursion x && all (onlyTailCalls . (.body)) cs
+      R1 (Let _ x y) -> noRecursion x && onlyTailCalls y
+      _ -> all noRecursion e
 
     noRecursion :: F.Expr -> Bool
-    noRecursion e = case unFix e of
-      Call f _ | f == name -> False
+    noRecursion (Fix e) = case e of
+      L1 (CallF f _) | f == name -> False
       x -> all noRecursion x

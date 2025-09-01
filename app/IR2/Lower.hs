@@ -8,6 +8,7 @@ import Data.Foldable
 import Data.HashMap.Strict qualified as M
 import Data.HashSet qualified as S
 import Data.Maybe
+import GHC.Generics
 import IR1.Term qualified as D
 import IR2.Term qualified as S
 
@@ -27,27 +28,27 @@ lower funcs = do
   execWriter $ evalStateT (mapM llTop funcs) $ S.fromList topNames
 
 llTop :: S.Func -> Lifter ()
-llTop (S.Func name params ret body) = do
+llTop (FuncF name params ret body) = do
   body' <- llExpr name M.empty body
-  tell [D.Func name params ret body']
+  tell [FuncF name params ret body']
 
 llExpr :: Ident IFunc -> LocalFuncs -> S.Expr -> Lifter D.Expr
-llExpr currentFunc localFuncs = \case
+llExpr currentFunc localFuncs (Fix e) = case e of
   -- If 'f' is local, then we need to pass the extra parameters added by lambda lifting.
   -- If 'f' is global, then we can leave it unchanged as lambda lifting does not
   -- affect global functions.
-  S.Expr (Call f xs) | Just info <- M.lookup f localFuncs -> do
+  R1 (L1 (CallF f xs)) | Just info <- M.lookup f localFuncs -> do
     -- 'f' is local
     xs' <- mapM (llExpr currentFunc localFuncs) xs
-    pure $ Fix $ Call info.newName (map (Fix . uncurry Var) info.extraParams ++ xs')
-  S.Expr x -> Fix <$> mapM (llExpr currentFunc localFuncs) x
-  S.ELetRec func@(S.Func name params ret body) cont -> do
+    pure $ Fix $ L1 $ CallF info.newName (map (Fix . R1 . uncurry Var) info.extraParams ++ xs')
+  L1 (LetRecF func@(FuncF name params ret body) cont) -> do
     newName <- freshFuncIdent currentFunc name
     let captured = M.toList $ funcCaptures localFuncs func
     let localFuncs' = M.insert name (LocalFuncInfo newName captured) localFuncs
     body' <- llExpr currentFunc localFuncs' body
-    tell [D.Func newName (captured ++ params) ret body']
+    tell [FuncF newName (captured ++ params) ret body']
     llExpr currentFunc localFuncs' cont
+  R1 x -> Fix <$> mapM (llExpr currentFunc localFuncs) x
 
 -- We must generate fresh names for newly lifted functions.
 -- We base the name on the original name
@@ -62,21 +63,21 @@ freshFuncIdent (Ident outer) (Ident oldName) = do
 -- Calculcate the variables a function captures. If this function calls other functions, and they require extra parameters,
 -- this function must also capture those too!
 funcCaptures :: LocalFuncs -> S.Func -> M.HashMap (Ident IVar) Type
-funcCaptures locals (S.Func _ params _ body) = exprCaptures locals body `M.difference` M.fromList params
+funcCaptures locals (FuncF _ params _ body) = exprCaptures locals body `M.difference` M.fromList params
 
 exprCaptures :: LocalFuncs -> S.Expr -> M.HashMap (Ident IVar) Type
-exprCaptures locals = \case
-  S.Expr (Var v a) -> M.singleton v a
-  S.Expr (Let v x y) -> exprCaptures locals x `M.union` M.delete v (exprCaptures locals y)
-  S.Expr (Match x cs) -> exprCaptures locals x `M.union` M.unions (map (clauseCaptures locals) cs)
-  S.Expr (Call f xs) | Just info <- M.lookup f locals -> M.unions (fmap (exprCaptures locals) xs) `M.union` M.fromList info.extraParams -- The interesting case!
-  S.Expr e -> M.unions $ toList $ fmap (exprCaptures locals) e
-  S.ELetRec func cont -> funcCaptures locals func `M.union` exprCaptures locals cont
+exprCaptures locals (Fix e) = case e of
+  R1 (R1 (Var v a)) -> M.singleton v a
+  R1 (R1 (Let v x y)) -> exprCaptures locals x `M.union` M.delete v (exprCaptures locals y)
+  R1 (R1 (Match x cs)) -> exprCaptures locals x `M.union` M.unions (map (clauseCaptures locals) cs)
+  R1 (L1 (CallF f xs)) | Just info <- M.lookup f locals -> M.unions (fmap (exprCaptures locals) xs) `M.union` M.fromList info.extraParams -- The interesting case!
+  L1 (LetRecF func cont) -> funcCaptures locals func `M.union` exprCaptures locals cont
+  _ -> M.unions $ toList $ fmap (exprCaptures locals) e
 
 clauseCaptures :: LocalFuncs -> ClauseF S.Expr -> M.HashMap (Ident IVar) Type
 clauseCaptures locals (ClauseF pat x) = exprCaptures locals x `M.difference` patBinds pat
 
 patBinds :: Pat -> M.HashMap (Ident IVar) Type
 patBinds = foldFix $ \case
-    PVar v a -> M.singleton v a
-    p -> M.unions $ toList p
+  PVar v a -> M.singleton v a
+  p -> M.unions $ toList p

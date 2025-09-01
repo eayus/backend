@@ -3,6 +3,7 @@ module IR0.Pretty (prettyProg) where
 
 import Common.Pretty
 import Data.Fix
+import GHC.Generics
 import IR0.Term
 import Prettyprinter
 import Prettyprinter.Render.Terminal
@@ -29,4 +30,6 @@ prettyStmt = \case
   Ret x -> keyword "return" <+> prettyExpr x <> ";"
 
 prettyExpr :: Expr -> Doc AnsiStyle
-prettyExpr = foldFix prettyExprF
+prettyExpr = foldFix $ \case
+  L1 x -> prettyCallF x
+  R1 x -> prettyCoreF x

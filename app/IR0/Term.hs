@@ -2,6 +2,9 @@ module IR0.Term where
 
 import Common.Term
 import Data.Fix
+import GHC.Generics
+
+type ExprF = CallF :+: CoreF
 
 type Expr = Fix ExprF
 
