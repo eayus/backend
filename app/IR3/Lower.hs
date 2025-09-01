@@ -11,10 +11,10 @@ import IR3.Term qualified as A
 lower :: A.Expr -> B.Expr
 lower (Fix e) = case e of
   L1 (A.AppF x y) -> case lower x of
-    Fix (R1 (R1 (Var (Ident v) _))) -> Fix $ R1 $ L1 $ CallF (Ident v) [lower y]
+    Fix (R1 (R1 (L1 (Var (Ident v) _)))) -> Fix $ R1 $ L1 $ CallF (Ident v) [lower y]
     _ -> undefined -- All functions applications should begin with a variable
   L1 (A.LamF {}) -> undefined -- Lambdas can only appear as argument to a let-binding.
-  R1 (Let (Ident v) x y) | Just (params, ret, body) <- collectLams x -> Fix $ L1 (LetFuncF (FuncF (Ident v) params ret (lower body)) (lower y))
+  R1 (R1 (Let (Ident v) x y)) | Just (params, ret, body) <- collectLams x -> Fix $ L1 (LetFuncF (FuncF (Ident v) params ret (lower body)) (lower y))
   R1 x -> Fix $ R1 $ R1 $ fmap lower x
 
 collectLams :: A.Expr -> Maybe ([(Ident IVar, Type)], Type, A.Expr)

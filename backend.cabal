@@ -35,6 +35,7 @@ executable backend
 
         IR3.Term,
         IR3.Lower,
+        IR3.Norm,
     default-extensions:
         DataKinds,
         DuplicateRecordFields,

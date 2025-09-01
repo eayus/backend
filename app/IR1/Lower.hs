@@ -30,15 +30,15 @@ tco (FuncF name params ret body) = I.Func name params ret stmts
     removeTailCalls :: F.Expr -> [I.Stmt]
     removeTailCalls e = case unFix e of
       (R1 c) -> case c of
-        Match x cs -> [I.SMatch x $ map (fmap removeTailCalls) cs]
-        Let v x y -> I.SLet v x : removeTailCalls y
+        R1 (Match x cs) -> [I.SMatch x $ map (fmap removeTailCalls) cs]
+        R1 (Let v x y) -> I.SLet v x : removeTailCalls y
         _ -> [I.Ret e]
       L1 (CallF f xs)
         | f == name -> do
             -- To ensure updating the mutable variables does not change their evaluation,
             -- we first compute values for all the params and give them temporary bindings.
             let setTmps = zipWith (I.SLet . tmpVar) (map fst params) xs
-            let updMuts = map (\(v, a) -> I.Set v (Fix $ R1 $ Var (tmpVar v) a)) params
+            let updMuts = map (\(v, a) -> I.Set v (Fix $ R1 $ L1 $ Var (tmpVar v) a)) params
             setTmps ++ updMuts
         | otherwise -> [I.Ret e]
 
@@ -52,8 +52,8 @@ eligble (FuncF name _ _ body) = onlyTailCalls body
   where
     onlyTailCalls :: F.Expr -> Bool
     onlyTailCalls (Fix e) = case e of
-      R1 (Match x cs) -> noRecursion x && all (onlyTailCalls . (.body)) cs
-      R1 (Let _ x y) -> noRecursion x && onlyTailCalls y
+      R1 (R1 (Match x cs)) -> noRecursion x && all (onlyTailCalls . (.body)) cs
+      R1 (R1 (Let _ x y)) -> noRecursion x && onlyTailCalls y
       _ -> all noRecursion e
 
     noRecursion :: F.Expr -> Bool

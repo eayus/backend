@@ -2,6 +2,7 @@ module Common.Pretty where
 
 import Common.Term
 import Data.Fix
+import GHC.Generics
 import Prettyprinter
 import Prettyprinter.Render.Terminal
 
@@ -19,6 +20,16 @@ prettyCallF (CallF f xs) = prettyFuncIdent f <> "(" <> commas xs <> ")"
 
 prettyCoreF :: CoreF (Doc AnsiStyle) -> Doc AnsiStyle
 prettyCoreF = \case
+  L1 x -> prettyFlatF x
+  R1 x -> prettyBindF x
+
+prettyBindF :: BindF (Doc AnsiStyle) -> Doc AnsiStyle
+prettyBindF = \case
+  Let v x y -> "{ let " <+> prettyVarIdent v <+> "=" <+> x <+> "; " <+> y <+> "}"
+  Match x cs -> parens $ keyword "match" <+> x <+> braceBlock (prettyClauses cs)
+
+prettyFlatF :: FlatF (Doc AnsiStyle) -> Doc AnsiStyle
+prettyFlatF = \case
   Var v _ -> prettyVarIdent v
   Lit l -> prettyLit l
   Pair x y -> parens $ x <> "," <+> y
@@ -26,8 +37,6 @@ prettyCoreF = \case
   Add x y -> parens $ x <+> "+" <+> y
   Sub x y -> parens $ x <+> "-" <+> y
   IGT x y -> parens $ x <+> ">" <+> y
-  Let v x y -> "{ let " <+> prettyVarIdent v <+> "=" <+> x <+> "; " <+> y <+> "}"
-  Match x cs -> parens $ keyword "match" <+> x <+> braceBlock (prettyClauses cs)
 
 prettyClauses :: [ClauseF (Doc AnsiStyle)] -> Doc AnsiStyle
 prettyClauses = vsep . map prettyClause

@@ -3,6 +3,7 @@ module Common.Term where
 import Data.Fix
 import Data.Hashable
 import Data.String
+import GHC.Generics
 import Text.Show.Deriving
 
 data IdentKind
@@ -43,10 +44,17 @@ data ClauseF a = ClauseF
 
 $(deriveShow1 ''ClauseF)
 
-data CoreF a
-  = Var (Ident IVar) Type
-  | Let (Ident IVar) a a
+-- Expressions which contain binders
+data BindF a
+  = Let (Ident IVar) a a
   | Match a [ClauseF a]
+  deriving (Foldable, Functor, Show, Traversable)
+
+$(deriveShow1 ''BindF)
+
+-- Expressions which don't contain binders
+data FlatF a
+  = Var (Ident IVar) Type
   | Lit Lit
   | Inj Int a
   | Pair a a
@@ -55,7 +63,9 @@ data CoreF a
   | IGT a a
   deriving (Foldable, Functor, Show, Traversable)
 
-$(deriveShow1 ''CoreF)
+$(deriveShow1 ''FlatF)
+
+type CoreF = FlatF :+: BindF
 
 data CallF a
   = CallF (Ident IFunc) [a]
