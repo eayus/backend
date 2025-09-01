@@ -24,15 +24,6 @@ data Lit
   | Bool Bool
   deriving (Show)
 
--- data PrimF a
---   = Lit Lit
---   | Pair a a
---   | Inj Integer a
---   | Add a a
---   | Sub a a
---   | IGT a a -- Integer greater than (>)
---   deriving (Foldable, Functor, Show, Traversable)
-
 data PatF r
   = PLit Lit
   | PVar (Ident IVar) Type
@@ -50,6 +41,8 @@ data ClauseF a = ClauseF
   }
   deriving (Foldable, Functor, Show, Traversable)
 
+$(deriveShow1 ''ClauseF)
+
 data CoreF a
   = Var (Ident IVar) Type
   | Let (Ident IVar) a a
@@ -62,9 +55,13 @@ data CoreF a
   | IGT a a
   deriving (Foldable, Functor, Show, Traversable)
 
+$(deriveShow1 ''CoreF)
+
 data CallF a
   = CallF (Ident IFunc) [a]
   deriving (Foldable, Functor, Show, Traversable)
+
+$(deriveShow1 ''CallF)
 
 data FuncF a = FuncF
   { name :: Ident IFunc,
@@ -74,19 +71,5 @@ data FuncF a = FuncF
   }
   deriving (Foldable, Functor, Show, Traversable)
 
-data LetRecF a = LetRecF (FuncF a) a
+data LetFuncF a = LetFuncF (FuncF a) a
   deriving (Foldable, Functor, Show, Traversable)
-
--- data ExprF a
---   = Var (Ident IVar) Type
---   | Let (Ident IVar) a a
---   | Call (Ident IFunc) [a]
---   | Prim (PrimF a)
---   | Match a [ClauseF a]
---   deriving (Foldable, Functor, Show, Traversable)
-
--- $(deriveShow1 ''PrimF)
-
-$(deriveShow1 ''ClauseF)
-$(deriveShow1 ''CallF)
-$(deriveShow1 ''CoreF)

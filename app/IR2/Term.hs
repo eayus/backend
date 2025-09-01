@@ -11,6 +11,6 @@ type Prog = [Func]
 
 type Func = FuncF Expr
 
-type ExprF = LetRecF :+: CallF :+: CoreF 
+type ExprF = LetFuncF :+: CallF :+: CoreF 
 
 type Expr = Fix ExprF

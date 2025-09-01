@@ -41,7 +41,7 @@ llExpr currentFunc localFuncs (Fix e) = case e of
     -- 'f' is local
     xs' <- mapM (llExpr currentFunc localFuncs) xs
     pure $ Fix $ L1 $ CallF info.newName (map (Fix . R1 . uncurry Var) info.extraParams ++ xs')
-  L1 (LetRecF func@(FuncF name params ret body) cont) -> do
+  L1 (LetFuncF func@(FuncF name params ret body) cont) -> do
     newName <- freshFuncIdent currentFunc name
     let captured = M.toList $ funcCaptures localFuncs func
     let localFuncs' = M.insert name (LocalFuncInfo newName captured) localFuncs
@@ -71,7 +71,7 @@ exprCaptures locals (Fix e) = case e of
   R1 (R1 (Let v x y)) -> exprCaptures locals x `M.union` M.delete v (exprCaptures locals y)
   R1 (R1 (Match x cs)) -> exprCaptures locals x `M.union` M.unions (map (clauseCaptures locals) cs)
   R1 (L1 (CallF f xs)) | Just info <- M.lookup f locals -> M.unions (fmap (exprCaptures locals) xs) `M.union` M.fromList info.extraParams -- The interesting case!
-  L1 (LetRecF func cont) -> funcCaptures locals func `M.union` exprCaptures locals cont
+  L1 (LetFuncF func cont) -> funcCaptures locals func `M.union` exprCaptures locals cont
   _ -> M.unions $ toList $ fmap (exprCaptures locals) e
 
 clauseCaptures :: LocalFuncs -> ClauseF S.Expr -> M.HashMap (Ident IVar) Type

@@ -26,6 +26,6 @@ prettyFunc (FuncF name params ret body) =
 
 prettyExpr :: Expr -> Doc AnsiStyle
 prettyExpr (Fix e) = case e of
-  L1 (LetRecF func cont) -> prettyFunc func <> prettyExpr cont
+  L1 (LetFuncF func cont) -> prettyFunc func <> prettyExpr cont
   R1 (L1 x) -> prettyCallF $ fmap prettyExpr x
   R1 (R1 x) -> prettyCoreF $ fmap prettyExpr x
