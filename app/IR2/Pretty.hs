@@ -8,21 +8,20 @@ import IR2.Term
 import Prettyprinter
 import Prettyprinter.Render.Terminal
 
-prettyProg :: Prog -> Doc AnsiStyle
+prettyProg :: Expr -> Doc AnsiStyle
 prettyProg prog =
-  vsep [annotate (italicized <> colorDull White) "// IR2", vsep (fmap prettyFunc prog)]
+  vsep [annotate (italicized <> colorDull White) "// IR2", prettyExpr prog]
 
 prettyFunc :: Func -> Doc AnsiStyle
 prettyFunc (FuncF name params ret body) =
-  keyword "let"
-    <+> keyword "rec"
+  keyword "fn"
     <+> prettyFuncIdent name
     <> parens (commas (map (\(v, a) -> prettyVarIdent v <> ":" <+> prettyType a) params))
-    <+> ":"
+    <+> "->"
     <+> prettyType ret
-    <+> "=\n"
+    <+> "{\n"
     <> indent 4 (prettyExpr body)
-    <> "\n"
+    <> "\n}\n\n"
 
 prettyExpr :: Expr -> Doc AnsiStyle
 prettyExpr (Fix e) = case e of

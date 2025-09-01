@@ -32,6 +32,9 @@ executable backend
         IR2.Term,
         IR2.Lower,
         IR2.Pretty,
+
+        IR3.Term,
+        IR3.Lower,
     default-extensions:
         DataKinds,
         DuplicateRecordFields,

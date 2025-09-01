@@ -14,7 +14,7 @@ import Prettyprinter.Render.Terminal
 
 main :: IO ()
 main = do
-  let ir2 = [func]
+  let ir2 = Fix $ L1 $ LetFuncF func (wrap $ Lit $ Int 3)
   let ir1 = IR2.lower ir2
   let ir0 = IR1.lower ir1
   putDoc $ vsep [IR2.prettyProg ir2, IR1.prettyProg ir1, IR0.prettyProg ir0]

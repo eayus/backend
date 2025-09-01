@@ -20,42 +20,38 @@ data LocalFuncInfo = LocalFuncInfo
 
 type LocalFuncs = M.HashMap (Ident IFunc) LocalFuncInfo
 
+-- As state we store the taken function names.
 type Lifter = StateT (S.HashSet (Ident IFunc)) (Writer [D.Func])
 
-lower :: S.Prog -> D.Prog
-lower funcs = do
-  let topNames = map (.name) funcs
-  execWriter $ evalStateT (mapM llTop funcs) $ S.fromList topNames
+lower :: S.Expr -> D.Prog
+lower e = execWriter $ flip evalStateT S.empty $ do
+    main <- llExpr M.empty e
+    tell [FuncF "main" [] TInt main]
 
-llTop :: S.Func -> Lifter ()
-llTop (FuncF name params ret body) = do
-  body' <- llExpr name M.empty body
-  tell [FuncF name params ret body']
-
-llExpr :: Ident IFunc -> LocalFuncs -> S.Expr -> Lifter D.Expr
-llExpr currentFunc localFuncs (Fix e) = case e of
+llExpr :: LocalFuncs -> S.Expr -> Lifter D.Expr
+llExpr localFuncs (Fix e) = case e of
   -- If 'f' is local, then we need to pass the extra parameters added by lambda lifting.
   -- If 'f' is global, then we can leave it unchanged as lambda lifting does not
   -- affect global functions.
   R1 (L1 (CallF f xs)) | Just info <- M.lookup f localFuncs -> do
     -- 'f' is local
-    xs' <- mapM (llExpr currentFunc localFuncs) xs
+    xs' <- mapM (llExpr localFuncs) xs
     pure $ Fix $ L1 $ CallF info.newName (map (Fix . R1 . uncurry Var) info.extraParams ++ xs')
   L1 (LetFuncF func@(FuncF name params ret body) cont) -> do
-    newName <- freshFuncIdent currentFunc name
+    newName <- freshFuncIdent name
     let captured = M.toList $ funcCaptures localFuncs func
     let localFuncs' = M.insert name (LocalFuncInfo newName captured) localFuncs
-    body' <- llExpr currentFunc localFuncs' body
+    body' <- llExpr localFuncs' body
     tell [FuncF newName (captured ++ params) ret body']
-    llExpr currentFunc localFuncs' cont
-  R1 x -> Fix <$> mapM (llExpr currentFunc localFuncs) x
+    llExpr localFuncs' cont
+  R1 x -> Fix <$> mapM (llExpr localFuncs) x
 
 -- We must generate fresh names for newly lifted functions.
 -- We base the name on the original name
-freshFuncIdent :: Ident IFunc -> Ident IFunc -> Lifter (Ident IFunc)
-freshFuncIdent (Ident outer) (Ident oldName) = do
+freshFuncIdent :: Ident IFunc -> Lifter (Ident IFunc)
+freshFuncIdent (Ident oldName) = do
   taken <- get
-  let candidates = map (Ident . ((outer ++ "_" ++ oldName) ++)) ("" : map show [0 :: Integer ..])
+  let candidates = map (Ident . (oldName ++)) ("" : map show [0 :: Integer ..])
   let newName = fromJust $ find (not . flip S.member taken) candidates
   put (S.insert newName taken)
   pure newName
